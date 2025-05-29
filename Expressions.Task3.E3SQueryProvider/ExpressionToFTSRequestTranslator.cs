@@ -34,15 +34,54 @@ namespace Expressions.Task3.E3SQueryProvider
                 return node;
             }
 
-            if(node.Method.Name == "Equals"
-                && node.Object is MemberExpression member
+            if (node.Method.Name == nameof(string.Equals)
+                && node.Object is MemberExpression equalsMember
                 && node.Arguments.Count == 1
-                && node.Arguments[0] is ConstantExpression constant)
+                && node.Arguments[0] is ConstantExpression equalsConstant)
             {
                 _resultStringBuilder
-                    .Append(member.Member.Name)
+                    .Append(equalsMember.Member.Name)
                     .Append(":(")
-                    .Append(constant.Value)
+                    .Append(equalsConstant.Value)
+                    .Append(")");
+                return node;
+            }
+
+            if (node.Method.Name == nameof(string.StartsWith)
+                && node.Object is MemberExpression startWithMember
+                && node.Arguments.Count == 1
+                && node.Arguments[0] is ConstantExpression startWithConstant)
+            {
+                _resultStringBuilder
+                    .Append(startWithMember.Member.Name)
+                    .Append(":(")
+                    .Append(startWithConstant.Value)
+                    .Append("*)");
+                return node;
+            }
+
+            if (node.Method.Name == nameof(string.Contains)
+                && node.Object is MemberExpression containsMember
+                && node.Arguments.Count == 1
+                && node.Arguments[0] is ConstantExpression containsConstant)
+            {
+                _resultStringBuilder
+                    .Append(containsMember.Member.Name)
+                    .Append(":(*")
+                    .Append(containsConstant.Value)
+                    .Append("*)");
+                return node;
+            }
+
+            if (node.Method.Name == nameof(string.EndsWith)
+                && node.Object is MemberExpression endsWithMember
+                && node.Arguments.Count == 1
+                && node.Arguments[0] is ConstantExpression endsWithConstant)
+            {
+                _resultStringBuilder
+                    .Append(endsWithMember.Member.Name)
+                    .Append(":(*")
+                    .Append(endsWithConstant.Value)
                     .Append(")");
                 return node;
             }
@@ -69,7 +108,8 @@ namespace Expressions.Task3.E3SQueryProvider
 
                 default:
                     throw new NotSupportedException($"Operation '{node.NodeType}' is not supported");
-            };
+            }
+            ;
 
             return node;
         }
