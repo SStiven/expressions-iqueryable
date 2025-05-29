@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection.Metadata;
 using System.Text;
 
 namespace Expressions.Task3.E3SQueryProvider
@@ -91,27 +92,39 @@ namespace Expressions.Task3.E3SQueryProvider
 
         protected override Expression VisitBinary(BinaryExpression node)
         {
-            switch (node.NodeType)
+            if (node.NodeType == ExpressionType.AndAlso)
             {
-                case ExpressionType.Equal:
-                    if (node.Left.NodeType != ExpressionType.MemberAccess)
-                        throw new NotSupportedException($"Left operand should be property or field: {node.NodeType}");
-
-                    if (node.Right.NodeType != ExpressionType.Constant)
-                        throw new NotSupportedException($"Right operand should be constant: {node.NodeType}");
-
-                    Visit(node.Left);
-                    _resultStringBuilder.Append("(");
-                    Visit(node.Right);
-                    _resultStringBuilder.Append(")");
-                    break;
-
-                default:
-                    throw new NotSupportedException($"Operation '{node.NodeType}' is not supported");
+                Visit(node.Left);
+                _resultStringBuilder.Append(" && ");
+                Visit(node.Right);
+                return node;
             }
-            ;
+
+            if (node.NodeType != ExpressionType.Equal)
+            {
+                throw new NotSupportedException($"Unsupported binary op: {node.NodeType}");
+            }
+
+            var (member, constant) = ExtractMemberAndConstant(node);
+
+            _resultStringBuilder
+                .Append(member.Member.Name)
+                .Append(":(")
+                .Append(constant.Value)
+                .Append(")");
 
             return node;
+        }
+
+        private (MemberExpression member, ConstantExpression constant) ExtractMemberAndConstant(BinaryExpression node)
+        {
+            if (node.Left is MemberExpression m1 && node.Right is ConstantExpression c1)
+                return (m1, c1);
+
+            if (node.Right is MemberExpression m2 && node.Left is ConstantExpression c2)
+                return (m2, c2);
+
+            throw new NotSupportedException("Equality must be between a field and a constant");
         }
 
         protected override Expression VisitMember(MemberExpression node)

@@ -7,10 +7,13 @@
  * imply the following rules: https://kb.epam.com/display/EPME3SDEV/Telescope+public+REST+for+data#TelescopepublicRESTfordata-FTSRequestSyntax
  */
 
+using Expressions.Task3.E3SQueryProvider.Models.Entities;
+using Expressions.Task3.E3SQueryProvider.Models.Request;
+using Microsoft.AspNetCore.WebUtilities;
+using Newtonsoft.Json;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
-using Expressions.Task3.E3SQueryProvider.Models.Entities;
 using Xunit;
 
 namespace Expressions.Task3.E3SQueryProvider.Test
@@ -25,6 +28,9 @@ namespace Expressions.Task3.E3SQueryProvider.Test
             var translator = new ExpressionToFtsRequestTranslator();
             Expression<Func<IQueryable<EmployeeEntity>, IQueryable<EmployeeEntity>>> expression
                 = query => query.Where(e => e.Workstation == "EPRUIZHW006" && e.Manager.StartsWith("John"));
+            var requestGenerator = new FtsRequestGenerator("http://localhost");
+            string translated = translator.Translate(expression);
+
             /*
              * The expression above should be converted to the following FTSQueryRequest and then serialized inside FTSRequestGenerator:
              * "statements": [
@@ -35,7 +41,21 @@ namespace Expressions.Task3.E3SQueryProvider.Test
              */
 
             // todo: create asserts for this test by yourself, because they will depend on your final implementation
-            throw new NotImplementedException("Please implement this test and the appropriate functionality");
+
+            var uri = requestGenerator.GenerateRequestUrl<EmployeeEntity>(translated);
+
+            var parseQuery = QueryHelpers.ParseQuery(uri.Query);
+            string encodedQuery = parseQuery["query"].First();
+            string queryAsJson = Uri.UnescapeDataString(encodedQuery);
+            var ftsQueryRequest = JsonConvert.DeserializeObject<FtsQueryRequest>(queryAsJson);
+
+            Assert.Equal(2, ftsQueryRequest.Statements.Count);
+            Assert.Equal("Workstation:(EPRUIZHW006)", ftsQueryRequest.Statements[0].Query);
+            Assert.Equal("Manager:(John*)", ftsQueryRequest.Statements[1].Query);
+            Assert.Null(ftsQueryRequest.Filters);
+            Assert.Null(ftsQueryRequest.Sorting);
+            Assert.Equal(0, ftsQueryRequest.Start);
+            Assert.Equal(10, ftsQueryRequest.Limit);
         }
 
         #endregion
