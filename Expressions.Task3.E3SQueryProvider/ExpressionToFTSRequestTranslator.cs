@@ -34,6 +34,19 @@ namespace Expressions.Task3.E3SQueryProvider
                 return node;
             }
 
+            if(node.Method.Name == "Equals"
+                && node.Object is MemberExpression member
+                && node.Arguments.Count == 1
+                && node.Arguments[0] is ConstantExpression constant)
+            {
+                _resultStringBuilder
+                    .Append(member.Member.Name)
+                    .Append(":(")
+                    .Append(constant.Value)
+                    .Append(")");
+                return node;
+            }
+
             return base.VisitMethodCall(node);
         }
 
